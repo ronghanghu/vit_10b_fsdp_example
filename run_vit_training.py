@@ -168,6 +168,9 @@ def build_fsdp_vit_model(cfg, device):
     """
 
     def fsdp_wrap(module):
+        if cfg.run_without_fsdp:
+            return module.to(device)
+
         # note: to implement ZeRO-3, set `cfg.reshard_after_forward` to True
         return FSDP(
             module.to(device),
@@ -224,10 +227,12 @@ def train(cfg):
     loss_fn = torch.nn.CrossEntropyLoss()
     xm.rendezvous("loaded model")
     xm.master_print(f"\n=== model ===\n{pprint.pformat(model)}\n")
-    xm.master_print(f"per-TPU (sharded) parameter num: {sum(p.numel() for p in model.parameters())}")
+
+    parameters = list(model.parameters())
+    xm.master_print(f"per-TPU (sharded) parameter num: {sum(p.numel() for p in parameters)}")
 
     # build optimizer and scheduler
-    optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
+    optimizer = torch.optim.AdamW(parameters, lr=cfg.lr, weight_decay=cfg.weight_decay)
     lr_scheduler = get_warmup_cosine_scheduler(
         optimizer, warmup_iteration=cfg.warmup_steps, max_iteration=len(train_dataset) // batch_size * num_epochs,
     )
@@ -250,16 +255,29 @@ def train(cfg):
         model.train()
         train_sampler.set_epoch(epoch)
         for step, (data, target) in enumerate(train_loader):
+            # 1. forward pass
             output = model(data)
             loss = loss_fn(output, target)
+
+            # 2. backward pass and gradient clipping (if specified via a positive cfg.clip_grad_norm)
             loss.backward()
-            # xm.reduce_gradients(optimizer)  # !!! note: do not reduce gradients in FSDP
-            if cfg.clip_grad_norm > 0:
-                model.clip_grad_norm_(cfg.clip_grad_norm)
+            if not cfg.run_without_fsdp:
+                # !!! DO NOT reduce (sharded) gradients across XLA devices when using FSDP
+                # !!! use `model.clip_grad_norm_` to clip based on full (instead of sharded) gradient's norm
+                if cfg.clip_grad_norm > 0:
+                    model.clip_grad_norm_(cfg.clip_grad_norm)
+            else:
+                # the baseline setting without FSDP (as a comparison)
+                xm.reduce_gradients(optimizer)
+                if cfg.clip_grad_norm > 0:
+                    torch.nn.utils.clip_grad_norm_(parameters, cfg.clip_grad_norm)
+
+            # 3. parameter update
             optimizer.step()
             lr_scheduler.step()
             optimizer.zero_grad(set_to_none=True)  # note: set_to_none saves more memory
 
+            # 4. logging
             t_new = time.time()
             time_step_elapsed, time_step_b = t_new - time_step_b, t_new
             smoothed_time.update(time_step_elapsed, batch_size=1)
@@ -337,6 +355,7 @@ if __name__ == "__main__":
     parser.add_argument("--no_grad_ckpt", action="store_false", dest="grad_ckpt")
     parser.add_argument("--no_reshard_after_forward", action="store_false", dest="reshard_after_forward")
     parser.add_argument("--flatten_parameters", action="store_true", dest="flatten_parameters")
+    parser.add_argument("--run_without_fsdp", action="store_true", dest="run_without_fsdp")
 
     cfg = parser.parse_args()
     xmp.spawn(main, args=(cfg,))

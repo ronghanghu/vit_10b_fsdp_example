@@ -2,7 +2,7 @@
 
 This repo implements sharded training of a Vision Transformer (ViT) model using the FSDP algorithm.
 
-**Warning: This repo and the [XLA FSDP PR](https://github.com/pytorch/xla/pull/3431) are still experimental and under development. Use at your own risk.**
+**Warning: This repository is still experimental. Use at your own risk.**
 
 ---
 
@@ -32,7 +32,7 @@ sudo pip3 install timm==0.4.12
 
 # install the FSDP PR into PyTorch/XLA
 cd ~ && rm -rf xla_fsdp_dev && git clone https://github.com/ronghanghu/xla.git xla_fsdp_dev
-cd xla_fsdp_dev && git checkout 20220505
+cd xla_fsdp_dev && git checkout xla_fsdp_rebased
 sudo rm -rf /usr/local/lib/python3.8/dist-packages/torch_xla/distributed/fsdp
 sudo cp -r ./torch_xla/distributed/fsdp /usr/local/lib/python3.8/dist-packages/torch_xla/distributed/
 
@@ -112,4 +112,6 @@ python3 -u ~/vit_10b_fsdp_example/run_vit_training.py \
   --log_step_interval 20 \
   2>&1 | tee ${SAVE_DIR}/stdout_stderr_$(date +%Y-%m-%d_%H-%M-%S).log
 ```
-Note that these hyperparameters (e.g. learning rate) are not necessarily optimal and you may need to tweak them to get the best performance. You can also use `--fake_data` to run on fake datasets (dummy images filled with all zeros).
+Note that these hyperparameters (e.g. learning rate) are not necessarily optimal and you may need to tweak them to get the best performance. You can also use `--fake_data` to run on fake datasets (dummy images filled with all zeros). As a comparison, you can pass `--run_without_fsdp` to launch without FSDP, which can only fit much smaller model sizes.
+
+You can also try running on models larger than the 10 billion size above. In general, you will need more TPU cores to fit more parameters. Don't worry if you see messages like `tcmalloc: large alloc 1677729792 bytes == 0x181ff4000` when trying to run this codebase on even larger models (e.g. 60B parameters) -- this message is [not an error](https://stackoverflow.com/questions/52351611/is-tcmalloc-large-alloc-a-warning-or-error-in-python). You can get rid of it by passing `--env TCMALLOC_LARGE_ALLOC_REPORT_THRESHOLD=4294967296` in `torch_xla.distributed.xla_dist` to raise the tcmalloc report threshold to e.g. 4 GB.
