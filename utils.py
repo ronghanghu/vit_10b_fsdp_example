@@ -5,6 +5,7 @@ from collections import deque
 import torch
 import numpy as np
 import torch_xla.core.xla_model as xm
+from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as FSDP
 
 
 def get_warmup_cosine_scheduler(optimizer, warmup_iteration, max_iteration):
@@ -23,6 +24,9 @@ def get_warmup_cosine_scheduler(optimizer, warmup_iteration, max_iteration):
 def save_ckpt(ckpt_path, model, optimizer, lr_scheduler, master_only=True):
     ckpt = {
         "model": model.state_dict(),
+        # also save "shard_metadata" for checkpoint consolidation later via
+        # `python3 -m torch_xla.distributed.fsdp.consolidate_sharded_ckpts`
+        "shard_metadata": model.get_shard_metadata() if isinstance(model, FSDP) else None,
         "optimizer": optimizer.state_dict(),
         "lr_scheduler": lr_scheduler.state_dict(),
     }
