@@ -1,16 +1,14 @@
 ## Vision Transformer (ViT) model using PyTorch/XLA FSDP
 
-This repo implements sharded training of a Vision Transformer (ViT) model using the FSDP algorithm.
-
-**Warning: This repository is still experimental. Use at your own risk.**
+This repo implements sharded training of a Vision Transformer (ViT) model on a 10-billion parameter scale using the [FSDP algorithm](https://github.com/pytorch/xla/blob/r1.12/torch_xla/distributed/fsdp/README.md) in PyTorch/XLA.
 
 ---
 
 ### Installation
 
-1. Allocate a v3-128 TPU VM pod (e.g. with name `rh-128-0` in zone `europe-west4-a`) from the `tpu-vm-pt-1.10` environment. You can also try out larger TPU pods such as v3-256 or v3-512.
+1. Allocate a v3-128 TPU VM pod (e.g. with name `rh-128-0` in zone `europe-west4-a`) from the `tpu-vm-pt-1.12` environment. You can also try out larger TPU pods such as v3-256 or v3-512.
 
-2. Install the nightly 20220505 wheels for `torch`, `torchvision`, and `torch_xla`, and also the nightly `dev20220413` wheel for libtpu (you need to use these exact versions as older versions won't work). Also install `timm` and install the [XLA FSDP PR](https://github.com/pytorch/xla/pull/3431).
+2. Install `timm` as a dependency (to create vision transformer layers) and clone this repository to all TPU VM nodes as follows.
 
 ```bash
 TPU_NAME=rh-128-0  # change to your TPU name
@@ -19,22 +17,8 @@ ZONE=europe-west4-a  # change to your TPU zone
 gcloud alpha compute tpus tpu-vm ssh ${TPU_NAME} --zone ${ZONE} \
   --worker all \
   --command "
-# torch, torchvision and torch_xla 20220505
-sudo pip3 install https://storage.googleapis.com/tpu-pytorch/wheels/tpuvm/torch-nightly+20220505-cp38-cp38-linux_x86_64.whl
-sudo pip3 install https://storage.googleapis.com/tpu-pytorch/wheels/tpuvm/torchvision-nightly+20220505-cp38-cp38-linux_x86_64.whl
-sudo pip3 install https://storage.googleapis.com/tpu-pytorch/wheels/tpuvm/torch_xla-nightly+20220505-cp38-cp38-linux_x86_64.whl
-
-# libtpu 20220413
-sudo pip3 install https://storage.googleapis.com/cloud-tpu-tpuvm-artifacts/wheels/libtpu-nightly/libtpu_nightly-0.1.dev20220413-py3-none-any.whl
-
 # ViT dependency
 sudo pip3 install timm==0.4.12
-
-# install the FSDP PR into PyTorch/XLA
-cd ~ && rm -rf xla_fsdp_dev && git clone https://github.com/ronghanghu/xla.git xla_fsdp_dev
-cd xla_fsdp_dev && git checkout xla_fsdp_rebased
-sudo rm -rf /usr/local/lib/python3.8/dist-packages/torch_xla/distributed/fsdp
-sudo cp -r ./torch_xla/distributed/fsdp /usr/local/lib/python3.8/dist-packages/torch_xla/distributed/
 
 # clone this repo ViT FSDP example
 cd ~ && rm -rf vit_10b_fsdp_example && git clone https://github.com/ronghanghu/vit_10b_fsdp_example.git
@@ -70,6 +54,8 @@ cd ~ && rm -rf vit_10b_fsdp_example && git clone https://github.com/ronghanghu/v
 |  |  |_...
 ```
 You can use a Persistent Disk or a Filestore NFS on GCP to store the ImageNet-1k dataset.
+
+Also, you can also use `--fake_data` to run on fake datasets (dummy images filled with all zeros) as an alternative way to test the model.
 
 ### Running the experiments
 
