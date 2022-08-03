@@ -317,6 +317,13 @@ def eval_on_val(val_loader, model, device):
 
 
 def main(device_id, cfg):
+    import torch
+    from xla_patched_linear import xla_patched_linear
+
+    # a patch on nn.Linear to resolve the autograd difference in PT/XLA
+    # (see https://github.com/pytorch/xla/issues/3811#issuecomment-1200486615 for details)
+    torch.nn.functional.linear = xla_patched_linear
+
     xm.master_print(f"\n=== cfg ===\n{pprint.pformat(cfg)}\n")
     train(cfg)
     xm.master_print("training completed")
