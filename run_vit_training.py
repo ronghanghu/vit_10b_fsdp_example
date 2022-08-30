@@ -29,7 +29,7 @@ from utils import (
 
 def build_datasets(cfg, device):
     world_size = xm.xrt_world_size()
-    rank = xm.get_local_ordinal()
+    rank = xm.get_ordinal()
 
     assert cfg.batch_size % world_size == 0
     local_batch_size = cfg.batch_size // world_size
