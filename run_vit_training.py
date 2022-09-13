@@ -172,8 +172,10 @@ def build_fsdp_vit_model(cfg, device):
             return module.to(device)
 
         # note: to implement ZeRO-3, set `cfg.reshard_after_forward` to True
+        # FSDP can directly wrap a module on CPU in https://github.com/pytorch/xla/pull/3992
+        # so one doesn't need to cast the module into XLA devices first.
         return FSDP(
-            module.to(device),
+            module if cfg.shard_on_cpu else module.to(device),
             reshard_after_forward=cfg.reshard_after_forward,
             flatten_parameters=cfg.flatten_parameters,
         )
@@ -322,6 +324,8 @@ def main(device_id, cfg):
 
     # a patch on nn.Linear to resolve the autograd difference in PT/XLA
     # (see https://github.com/pytorch/xla/issues/3811#issuecomment-1200486615 for details)
+    # note that this patch is no longer needed here as it has been integrated into FSDP itself
+    # in https://github.com/pytorch/xla/pull/3830
     torch.nn.functional.linear = xla_patched_linear
 
     xm.master_print(f"\n=== cfg ===\n{pprint.pformat(cfg)}\n")
@@ -363,6 +367,7 @@ if __name__ == "__main__":
     parser.add_argument("--no_reshard_after_forward", action="store_false", dest="reshard_after_forward")
     parser.add_argument("--flatten_parameters", action="store_true", dest="flatten_parameters")
     parser.add_argument("--run_without_fsdp", action="store_true", dest="run_without_fsdp")
+    parser.add_argument("--shard_on_cpu", action="store_true", dest="shard_on_cpu")
 
     cfg = parser.parse_args()
     xmp.spawn(main, args=(cfg,))
