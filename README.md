@@ -1,18 +1,18 @@
 ## Vision Transformer (ViT) model using PyTorch/XLA FSDP
 
-This repo implements sharded training of a Vision Transformer (ViT) model on a 10-billion parameter scale using the [FSDP algorithm](https://github.com/pytorch/xla/blob/r1.12/torch_xla/distributed/fsdp/README.md) in PyTorch/XLA. It is now officially supported in the PyTorch/XLA 1.12 release.
+This repo implements sharded training of a Vision Transformer (ViT) model on a 10-billion parameter scale using the [FSDP algorithm](https://github.com/pytorch/xla/blob/master/docs/fsdp.md) in PyTorch/XLA. It is now officially supported in the PyTorch/XLA 1.13 release.
 
 ---
 
 ### Installation
 
-1. Allocate a v3-128 TPU VM pod (e.g. with name `rh-128-0` in zone `europe-west4-a`) from the `tpu-vm-pt-1.12` environment as follows according to TPU VM [instruction](https://cloud.google.com/tpu/docs/run-calculation-pytorch). You can also try out larger TPU pods such as v3-256 or v3-512.
+1. Allocate a v3-128 TPU VM pod (e.g. with name `rh-128-0` in zone `europe-west4-a`) from the `tpu-vm-pt-1.13` environment as follows according to TPU VM [instruction](https://cloud.google.com/tpu/docs/run-calculation-pytorch). You can also try out larger TPU pods such as v3-256 or v3-512.
 
 ```bash
 TPU_NAME=rh-128-0  # change to your TPU name
 ZONE=europe-west4-a  # change to your TPU zone
 ACCELERATOR_TYPE=v3-128  # you can also try out larger TPU pods
-RUNTIME_VERSION=tpu-vm-pt-1.12  # the XLA FSDP interface is supported in PyTorch/XLA
+RUNTIME_VERSION=tpu-vm-pt-1.13  # the XLA FSDP interface is supported in PyTorch/XLA
 
 gcloud alpha compute tpus tpu-vm create ${TPU_NAME} \
   --zone ${ZONE} \
@@ -20,7 +20,7 @@ gcloud alpha compute tpus tpu-vm create ${TPU_NAME} \
   --version ${RUNTIME_VERSION}
 ```
 
-2. Install `timm` as a dependency (to create vision transformer layers) and clone this repository to all TPU VM nodes as follows.
+2. Install the nightly version of PyTorch/XLA and also `timm` as a dependency (to create vision transformer layers) and clone this repository to all TPU VM nodes as follows.
 
 ```bash
 TPU_NAME=rh-128-0  # change to your TPU name
@@ -29,6 +29,12 @@ ZONE=europe-west4-a  # change to your TPU zone
 gcloud alpha compute tpus tpu-vm ssh ${TPU_NAME} --zone ${ZONE} \
   --worker all \
   --command "
+# nightly torch, torchvision, torch_xla, and libtpu
+sudo pip3 install https://storage.googleapis.com/tpu-pytorch/wheels/tpuvm/torch-nightly+20221222-cp38-cp38-linux_x86_64.whl
+sudo pip3 install https://storage.googleapis.com/tpu-pytorch/wheels/tpuvm/torchvision-nightly+20221222-cp38-cp38-linux_x86_64.whl
+sudo pip3 install https://storage.googleapis.com/tpu-pytorch/wheels/tpuvm/torch_xla-nightly+20221222-cp38-cp38-linux_x86_64.whl
+sudo pip3 install https://storage.googleapis.com/cloud-tpu-tpuvm-artifacts/wheels/libtpu-nightly/libtpu_nightly-0.1.dev20221217-py3-none-any.whl
+
 # ViT dependency
 sudo pip3 install timm==0.4.12
 
