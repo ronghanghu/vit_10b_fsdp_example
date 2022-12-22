@@ -43,9 +43,9 @@ cd ~ && rm -rf vit_10b_fsdp_example && git clone https://github.com/ronghanghu/v
 "
 ```
 
-3. Download [ImageNet-1k](https://image-net.org/) to a shared directory (e.g. to `/datasets/imagenet-1k`) that can be accessed from all nodes, which should have the following structure (the validation images moved to labeled subfolders, following the [PyTorch ImageNet example](https://github.com/pytorch/examples/tree/master/imagenet#requirements)).
+3. Download [ImageNet-1k](https://image-net.org/) to a shared directory (e.g. to `/checkpoint/imagenet-1k`) that can be accessed from all nodes, which should have the following structure (the validation images moved to labeled subfolders, following the [PyTorch ImageNet example](https://github.com/pytorch/examples/tree/master/imagenet#requirements)).
 ```
-/datasets/imagenet-1k
+/checkpoint/imagenet-1k
 |_ train
 |  |_ <n0......>
 |  |  |_<im-1-name>.JPEG
@@ -99,7 +99,7 @@ mkdir -p ${SAVE_DIR}
 cd ${HOME} && python3 -m torch_xla.distributed.xla_dist \
   --tpu=${TPU_NAME} --restart-tpuvm-pod-server --env PYTHONUNBUFFERED=1 -- \
 python3 -u ~/vit_10b_fsdp_example/run_vit_training.py \
-  --data_dir /datasets/imagenet-1k \
+  --data_dir /checkpoint/imagenet-1k \
   --ckpt_dir ${SAVE_DIR} \
   --image_size 224 \
   --patch_size 14 \
@@ -114,6 +114,7 @@ python3 -u ~/vit_10b_fsdp_example/run_vit_training.py \
   --clip_grad_norm 1.0 \
   --warmup_steps 10000 \
   --log_step_interval 20 \
+  --shard_on_cpu \
   2>&1 | tee ${SAVE_DIR}/stdout_stderr_$(date +%Y-%m-%d_%H-%M-%S).log
 ```
 Note that these hyperparameters (e.g. learning rate) are not necessarily optimal and you may need to tweak them to get the best performance. You can also use `--fake_data` to run on fake datasets (dummy images filled with all zeros). As a comparison, you can pass `--run_without_fsdp` to launch without FSDP, which can only fit much smaller model sizes.
