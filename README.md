@@ -30,10 +30,10 @@ gcloud alpha compute tpus tpu-vm ssh ${TPU_NAME} --zone ${ZONE} \
   --worker all \
   --command "
 # nightly torch, torchvision, torch_xla, and libtpu
-sudo pip3 install https://storage.googleapis.com/tpu-pytorch/wheels/tpuvm/torch-nightly+20221222-cp38-cp38-linux_x86_64.whl
-sudo pip3 install https://storage.googleapis.com/tpu-pytorch/wheels/tpuvm/torchvision-nightly+20221222-cp38-cp38-linux_x86_64.whl
-sudo pip3 install https://storage.googleapis.com/tpu-pytorch/wheels/tpuvm/torch_xla-nightly+20221222-cp38-cp38-linux_x86_64.whl
-sudo pip3 install https://storage.googleapis.com/cloud-tpu-tpuvm-artifacts/wheels/libtpu-nightly/libtpu_nightly-0.1.dev20221217-py3-none-any.whl
+sudo pip3 install https://storage.googleapis.com/tpu-pytorch/wheels/tpuvm/torch-nightly+20221117-cp38-cp38-linux_x86_64.whl
+sudo pip3 install https://storage.googleapis.com/tpu-pytorch/wheels/tpuvm/torchvision-nightly+20221117-cp38-cp38-linux_x86_64.whl
+sudo pip3 install https://storage.googleapis.com/tpu-pytorch/wheels/tpuvm/torch_xla-nightly+20221117-cp38-cp38-linux_x86_64.whl
+sudo pip3 install https://storage.googleapis.com/cloud-tpu-tpuvm-artifacts/wheels/libtpu-nightly/libtpu_nightly-0.1.dev20221017-py3-none-any.whl
 
 # ViT dependency
 sudo pip3 install timm==0.4.12
